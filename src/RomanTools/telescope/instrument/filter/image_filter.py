@@ -1,8 +1,8 @@
 from importlib.resources import as_file, files
 
 import numpy as np
-from astropy.table import vstack
 from astropy.io.ascii import read
+from astropy.table import vstack
 
 
 def image_filter_params(

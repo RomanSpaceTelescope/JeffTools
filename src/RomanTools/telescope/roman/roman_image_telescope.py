@@ -1,27 +1,27 @@
 from importlib.resources import as_file, files
 
 import numpy as np
-from astropy.table import vstack
 from astropy.io.ascii import read
+from astropy.table import vstack
 
-from . import RomanInputParams
-from .roman_optics import roman_optics
-from ..telescope import Telescope, Table
-from ..tel_elem_table import elements_table
 from ..instrument import (
-    InstrumentMode,
     ImageInstrument,
-    upstream_elements,
+    InstrumentMode,
     downstream_elements,
+    upstream_elements,
 )
 from ..instrument.filter import image_filter_params
 from ..instrument.filter.filter_dep import fdep_trio
-from .pupil_obscuration_geometry import pupil_obscuration_geom
 from ..psf import r_other
+from ..tel_elem_table import elements_table
+from ..telescope import Table, Telescope
+from . import RomanInputParams
+from .pupil_obscuration_geometry import pupil_obscuration_geom
+from .roman_optics import roman_optics
 from .sca_dependent_data import (
+    sca_dep_full_well,
     sca_dep_xavg_pixel_scale,
     sca_dep_yavg_pixel_scale,
-    sca_dep_full_well,
 )
 
 

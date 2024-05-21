@@ -73,6 +73,7 @@ exclude = [
     "node_modules",
     "site-packages",
     "venv",
+    ".python-version",
 ]
 
 # Same as Black.
@@ -83,8 +84,8 @@ indent-width = 4
 # Enable Pyflakes (`F`) and a subset of the pycodestyle (`E`)  codes by default.
 # Unlike Flake8, Ruff doesn't enable pycodestyle warnings (`W`) or
 # McCabe complexity (`C901`) by default.
-select = ["E4", "E7", "E9", "F", "B", "Q"]
-ignore = ["E501", "W6"]
+select = ["B", "B9", "C", "C901", "E4", "E7", "E9", "F", "I", "Q", "W"]
+ignore = ["E203", "E266", "E501", "F405", "F403", "F401", "E501", "W6"]
 
 # Allow fix for all enabled rules (when `--fix`) is provided.
 fixable = ["ALL"]

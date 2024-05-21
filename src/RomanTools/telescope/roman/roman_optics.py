@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from . import RomanInputParams
-from ..tel_elem_table import elements_table
-from .sca_dependent_data import sca_dep_avg_pixel_scale, sca_dep_sca_tilt
-
 import numpy as np
 from astropy import units as u
 from astropy.units import arcsec
+
+from ..tel_elem_table import elements_table
+from . import RomanInputParams
+from .sca_dependent_data import sca_dep_avg_pixel_scale, sca_dep_sca_tilt
 
 __all__ = ['roman_optics']
 

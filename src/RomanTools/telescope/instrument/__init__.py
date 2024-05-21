@@ -1,11 +1,11 @@
-from .mode import InstrumentMode
-from .zone_elements import upstream_elements, downstream_elements
+from . import filter
 from .instrument import (
+    GrismInstrument,
     ImageInstrument,
     PrismInstrument,
-    GrismInstrument,
 )
-from . import filter
+from .mode import InstrumentMode
+from .zone_elements import downstream_elements, upstream_elements
 
 __all__ = [
     'filter',

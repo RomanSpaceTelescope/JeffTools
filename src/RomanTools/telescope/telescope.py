@@ -1,16 +1,17 @@
 from __future__ import annotations
-# from typing import List
 
+# from typing import List
 from dataclasses import dataclass
+
+import numpy as np
 
 # from typing import Union
 from astropy.table import Table
-import numpy as np
 
 from .instrument import (
-    InstrumentMode,
-    ImageInstrument,
     GrismInstrument,
+    ImageInstrument,
+    InstrumentMode,
     PrismInstrument,
 )
 

@@ -1,9 +1,8 @@
 from typing import List
 
-from astropy.table import Table
 import numpy as np
+from astropy.table import Table
 from numpy.typing import NDArray
-
 
 __all__ = ['Table', 'elements_table']
 

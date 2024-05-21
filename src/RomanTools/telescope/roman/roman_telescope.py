@@ -1,11 +1,11 @@
+from ..instrument import InstrumentMode
+from ..telescope import Telescope
 from . import (
     RomanInputParams,
 )
-from .roman_image_telescope import roman_image_telescope
 from .roman_grism_telescope import roman_grism_telescope
+from .roman_image_telescope import roman_image_telescope
 from .roman_prism_telescope import roman_prism_telescope
-from ..telescope import Telescope
-from ..instrument import InstrumentMode
 
 __all__ = ['roman_telescope']
 

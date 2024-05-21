@@ -1,8 +1,8 @@
-from ..roman import RomanInputParams
-from ..telescope import Table
-from ..tel_elem_table import elements_table
-
 import numpy as np
+
+from ..roman import RomanInputParams
+from ..tel_elem_table import elements_table
+from ..telescope import Table
 
 
 def upstream_elements(
