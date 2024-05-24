@@ -25,7 +25,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        python: [38, 39, 310, 311, 312]
+        python: [39, 310, 311, 312]
 
     steps:
     - uses: actions/checkout@v3
@@ -36,10 +36,10 @@ jobs:
 
     - name: Build wheels
       uses: pypa/cibuildwheel@v2.15.0
-      env:
-        CIBW_BUILD: cp${{ matrix.python }}-manylinux_x86_64
-        CIBW_ARCHS_LINUX: auto
-        CIBW_TEST_SKIP: "*_aarch64, *macosx*, *_arm64, *_universal2:arm64"
+      # env:
+      #   CIBW_BUILD: cp${{ matrix.python }}-manylinux_x86_64
+      #   CIBW_ARCHS_LINUX: auto
+      #   CIBW_TEST_SKIP: "*_aarch64, *macosx*, *_arm64, *_universal2:arm64"
 
     - name: Upload Build Artifact
       uses: actions/upload-artifact@v3
