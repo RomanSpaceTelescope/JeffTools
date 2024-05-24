@@ -12,7 +12,6 @@ local_scheme = 'no-local-version'
 parentdir_prefix_version = 'RomanTools-'
 
 [tool.cibuildwheel]
-platforms = "auto"
 test-requires = "pytest"
 test-command = "pytest {project}/test"
 python = [
