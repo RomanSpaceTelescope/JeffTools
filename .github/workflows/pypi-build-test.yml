@@ -18,28 +18,34 @@ on:
 jobs:
 
   build_wheels:
-    name: Wheel cp${{ matrix.python }}
+    name: Wheel cp${{ matrix.python-version }}
     runs-on: ${{ matrix.os }}
 
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        python: [38, 39, 310, 311, 312]
+        python-version: ["3.9", "3.10", "3.11", "3.12"]
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Get history and tags for SCM versioning
       run: |
         git fetch --prune --unshallow
         git fetch --depth=1 origin +refs/tags/*:refs/tags/*
 
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Upgrade pip and install build tools
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install setuptools wheel
+
     - name: Build wheels
-      uses: pypa/cibuildwheel@v2.15.0
-      env:
-        CIBW_BUILD: cp${{ matrix.python }}-manylinux_x86_64
-        CIBW_ARCHS_LINUX: auto
-        CIBW_TEST_SKIP: "*_aarch64, *macosx*, *_arm64, *_universal2:arm64"
+      run: pip wheel -w DEST_DIR .
 
     - name: Upload Build Artifact
       uses: actions/upload-artifact@v3
