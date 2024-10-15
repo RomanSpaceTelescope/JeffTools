@@ -4,7 +4,7 @@ import numpy as np
 from astropy.table import Table
 from numpy.typing import NDArray
 
-__all__ = ['Table', 'elements_table']
+__all__ = ['elements_table']
 
 
 def elements_table(
@@ -34,7 +34,7 @@ def elements_table(
             obsc_azimfrac,
             th_emis_tput,
             fdep,
-            zone,
+            np.full_like(emissivities, zone),
         ],
         names=(
             'Name',

@@ -4,9 +4,9 @@ import numpy as np
 from astropy import units as u
 from astropy.units import arcsec
 
-from ..tel_elem_table import elements_table
 from . import RomanInputParams
 from .sca_dependent_data import sca_dep_avg_pixel_scale, sca_dep_sca_tilt
+from .tel_elem_table import elements_table
 
 __all__ = ['roman_optics']
 
@@ -158,7 +158,7 @@ def roman_optics(sca: int, params: RomanInputParams) -> dict:
         [
             1.0,
             1.0,
-            *(params.smst_zone_frac_area * params.smst_azim_frac),
+            *(np.array(params.smst_zone_frac_area) * np.array(params.smst_azim_frac)),
             1.0,
             1.0,
             1.0,

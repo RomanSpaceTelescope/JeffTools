@@ -103,7 +103,9 @@ def prism_filter_params(sca_index: int, pixel_scale: float) -> dict:
     w_spect, r_theta, d_lambda = prism_filter_spectra(w_lo, w_hi, pixel_scale)
 
     return {
-        'name': 'PR-band',
+        'name': [
+            'PR-band',
+        ],
         'nf': nf,
         'low': np.array([wmin_sn]),
         'high': np.array([wmax_sn]),

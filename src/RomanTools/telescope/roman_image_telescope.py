@@ -4,18 +4,16 @@ import numpy as np
 from astropy.io.ascii import read
 from astropy.table import vstack
 
-from ..instrument import (
+from . import RomanInputParams
+from .instrument import (
     ImageInstrument,
     InstrumentMode,
     downstream_elements,
     upstream_elements,
 )
-from ..instrument.filter import image_filter_params
-from ..instrument.filter.filter_dep import fdep_trio
-from ..psf import r_other
-from ..tel_elem_table import elements_table
-from ..telescope import Table, Telescope
-from . import RomanInputParams
+from .instrument.filter import image_filter_params
+from .instrument.filter.filter_dep import fdep_trio
+from .psf import r_other
 from .pupil_obscuration_geometry import pupil_obscuration_geom
 from .roman_optics import roman_optics
 from .sca_dependent_data import (
@@ -23,6 +21,8 @@ from .sca_dependent_data import (
     sca_dep_xavg_pixel_scale,
     sca_dep_yavg_pixel_scale,
 )
+from .tel_elem_table import elements_table
+from .telescope import Table, Telescope
 
 
 def roman_image_telescope(
@@ -52,7 +52,7 @@ def roman_image_telescope(
         raise KeyError(f'sca index outside range [0,17]: {sca}')
 
     optics = roman_optics(sca, params)
-    elems_us = upstream_elements(params, optics['tel_elems']['Obscuration_azim_frac'])
+    elems_us = upstream_elements(params, optics['tel_elems']['Obscuration Azim Frac'])
     elems_ss = elements_table(
         names=['Filter'],
         types=['filter'],
@@ -80,11 +80,11 @@ def roman_image_telescope(
     with as_file(
         files('RomanTools.data.throughput') / 'Skinny_mask_throughput.txt'
     ) as f:
-        data = read(f, format='no_header', data_start=0)
+        data = read(f).columns[1].data
         ob_sw = 1.0 - 0.01 * data[sca]
     # long-wave filters
     with as_file(files('RomanTools.data.throughput') / 'F184_mask_throughput.txt') as f:
-        data = read(f, format='no_header', data_start=0)
+        data = read(f).columns[1].data
         ob_lw = 1.0 - 0.01 * data[sca]
 
     obsc_filt_pupil = np.array([ob_sw, ob_sw, ob_sw, ob_sw, ob_sw, ob_lw, ob_sw, ob_lw])
@@ -120,7 +120,7 @@ def roman_image_telescope(
             pog['obsc_filt_pupil_geom'],
         ],
         names=(
-            'Filter',
+            'Filter Name',
             'Low',
             'Low_width',
             'High',

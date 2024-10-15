@@ -22,6 +22,8 @@ __all__ = ['Telescope', 'TelescopeOptics']
 class Telescope:
     telescope: str
     instrument_name: str
+    mode_type: InstrumentMode
+    """Telescope Mode Type"""
     mode: str
     sca: int
     opt_elem: Table
@@ -68,8 +70,6 @@ class Telescope:
     """dark current at nominal temp, e/p/s"""
     frame_time: float
     """frame time in seconds"""
-    mode_type: InstrumentMode
-    """Telescope Mode Type"""
     # Default values.
     r_diffu: float = 2.0
     """charge diffusion length, in microns"""

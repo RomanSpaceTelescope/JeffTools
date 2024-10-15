@@ -87,7 +87,7 @@ def grism_filter_params(sca_index: int) -> dict:
         'high': np.array([wmax_grs]),
         'wlow': np.array([wthk_grs_lo * wmin_grs]),
         'whigh': np.array([wthk_grs_hi * wmax_grs]),
-        'n_spect': n_spect,
+        'n_spect': np.array([n_spect]),
         'w_sp_psf': w_sp_psf,
-        'grs_disp': grs_disp,
+        'grs_disp': np.array([grs_disp]),
     }

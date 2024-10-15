@@ -2,7 +2,8 @@ from typing import Tuple
 
 import numpy as np
 
-from ...telescope import Table
+##
+from astropy.table import Table
 
 # from here down have to be consistent about which distances are used to compute f/#s.
 # Need f/# passed by rim of mask for computing solid angles subtended by beam through most of the optics
@@ -38,21 +39,23 @@ def fnum_outer(sys_focal_length, nf, params, expup_rim_id, opt_elem) -> np.ndarr
     )
     fdep_fnum_outer_z2 = params.pupil_distance / expup_rim_id
 
-    idx_z1 = np.where(opt_elem['Zone'] == 1)[0]
-    idx_z2 = np.where(opt_elem['Zone'] == 2)[0]
-    idx_z3 = np.where(opt_elem['Zone'] == 3)[0]
+    idx_z1 = np.where(opt_elem['Thermal Zone'] == 1)[0]
+    idx_z2 = np.where(opt_elem['Thermal Zone'] == 2)[0]
+    idx_z3 = np.where(opt_elem['Thermal Zone'] == 3)[0]
 
     #####################################
     # Filter Dependent Fnum Outer array #
     #####################################
-    fdep_fnum_outer = np.array((nf, len(opt_elem)))
+    fdep_fnum_outer = np.empty((nf, len(opt_elem)))
     fdep_fnum_outer[:, idx_z1] = np.minimum(
-        fdep_fnum_outer_z1, opt_elem[opt_elem['Zone'] == 1 & opt_elem['Fnum Outer']]
+        fdep_fnum_outer_z1[:, None],
+        opt_elem[opt_elem['Thermal Zone'] == 1]['Fnum Outer'][None, :],
     )
     fdep_fnum_outer[:, idx_z2] = np.maximum(
-        fdep_fnum_outer_z2, opt_elem[opt_elem['Zone'] == 2 & opt_elem['Fnum Outer']]
+        fdep_fnum_outer_z2[:, None],
+        opt_elem[opt_elem['Thermal Zone'] == 2]['Fnum Outer'][None, :],
     )
-    fdep_fnum_outer[:, idx_z3] = opt_elem[opt_elem['Zone'] == 3]
+    fdep_fnum_outer[:, idx_z3] = opt_elem[opt_elem['Thermal Zone'] == 3]['Fnum Outer']
 
     return fdep_fnum_outer
 
@@ -76,32 +79,38 @@ def fnum_inner(sys_focal_length, nf, params, expup_center_od, opt_elem) -> np.nd
     Returns:
     - np.array: Calculated inner F-numbers for each zone and filter configuration.
     """
-    fdep_fnum_inner_z1 = np.where(
-        expup_center_od > 0,
-        (sys_focal_length / params.pm_d) * params.exit_pupil_diam / expup_center_od,
-        1e6,
+    fdep_fnum_inner_z1 = np.full_like(expup_center_od, 1e6)
+    fdep_fnum_inner_z2 = np.full_like(expup_center_od, 1e6)
+
+    fdep_fnum_inner_z1[expup_center_od > 0] = (
+        (sys_focal_length / params.pm_d)
+        * params.exit_pupil_diam
+        / expup_center_od[expup_center_od > 0]
     )
-    fdep_fnum_inner_z2 = np.where(
-        expup_center_od > 0, params.pupil_distance / expup_center_od, 1e6
+    fdep_fnum_inner_z2[expup_center_od > 0] = (
+        params.exit_pupil_diam / expup_center_od[expup_center_od > 0]
     )
 
-    idx_z1 = np.where(opt_elem['Zone'] == 1)[0]
-    idx_z2 = np.where(opt_elem['Zone'] == 2)[0]
-    idx_z3 = np.where(opt_elem['Zone'] == 3)[0]
+    idx_z1 = np.where(opt_elem['Thermal Zone'] == 1)[0]
+    idx_z2 = np.where(opt_elem['Thermal Zone'] == 2)[0]
+    idx_z3 = np.where(opt_elem['Thermal Zone'] == 3)[0]
     idx_pupil = np.where(opt_elem['Name'] == 'Pupil Mask')[0]
 
     #####################################
     # Filter Dependent Fnum Inner array #
     #####################################
-    fdep_fnum_inner = np.array((nf, len(opt_elem)))
+    fdep_fnum_inner = np.empty((nf, len(opt_elem)))
     fdep_fnum_inner[:, idx_z1] = np.minimum(
-        fdep_fnum_inner_z1, opt_elem[opt_elem['Zone'] == 1 & opt_elem['Fnum Inner']]
+        fdep_fnum_inner_z1[:, None],
+        opt_elem[opt_elem['Thermal Zone'] == 1]['Fnum Inner'][None, :],
     )
     fdep_fnum_inner[:, idx_z2] = np.maximum(
-        fdep_fnum_inner_z2, opt_elem[opt_elem['Zone'] == 2 & opt_elem['Fnum Inner']]
+        fdep_fnum_inner_z2[:, None],
+        opt_elem[opt_elem['Thermal Zone'] == 2]['Fnum Inner'][None, :],
     )
-    fdep_fnum_inner[:, idx_pupil] = fdep_fnum_inner_z2  # Special case: Pupil Mask
-    fdep_fnum_inner[:, idx_z3] = opt_elem[opt_elem['Zone'] == 3]
+    # Special case: Pupil Mask
+    fdep_fnum_inner[:, idx_pupil] = fdep_fnum_inner_z2.reshape(-1, 1)
+    fdep_fnum_inner[:, idx_z3] = opt_elem[opt_elem['Thermal Zone'] == 3]['Fnum Outer']
 
     return fdep_fnum_inner
 
@@ -138,9 +147,9 @@ def solid_angle(
     Returns:
     - np.ndarray: Array containing calculated solid angles for each filter and element.
     """
-    idx_z1 = np.where(opt_elem['Zone'] == 1)[0]
-    idx_z2 = np.where(opt_elem['Zone'] == 2)[0]
-    idx_z3 = np.where(opt_elem['Zone'] == 3)[0]
+    idx_z1 = np.where(opt_elem['Thermal Zone'] == 1)[0]
+    idx_z2 = np.where(opt_elem['Thermal Zone'] == 2)[0]
+    idx_z3 = np.where(opt_elem['Thermal Zone'] == 3)[0]
     idx_pupil = np.where(opt_elem['Name'] == 'Pupil Mask')[0]
     idx_smst = np.where(
         np.isin(opt_elem['Name'], ['SMST_cold_zone', 'SMST_med_zone', 'SMST_warm_zone'])
@@ -149,48 +158,66 @@ def solid_angle(
     # Filter Dependent Solid Angle
     # beta_min is minimum angle of rays wrt optic axis for each zone
     # beta_max is maximum angle of rays wrt optic axis for each zone
-    cosbmin = np.where(
-        fdep_fnum_inner > 2000.0,
-        1.0,
-        1.0 / np.sqrt(1.0 + 1.0 / (4.0 * fdep_fnum_inner**2)),
+    # shape of cosbmin is (nf, nopt) == (8, 18)
+    valid_cosb_inner = np.zeros_like(fdep_fnum_inner)
+    valid_cosb_outer = np.zeros_like(fdep_fnum_outer)
+
+    valid_cosb_inner[fdep_fnum_inner != 0] = 1.0 / np.sqrt(
+        1.0 + 1.0 / (4.0 * fdep_fnum_inner[fdep_fnum_inner != 0] ** 2)
     )
-    cosbmax = np.where(
-        fdep_fnum_outer < 1e-4,
-        0.0,
-        1.0 / np.sqrt(1.0 + 1.0 / (4.0 * fdep_fnum_outer**2)),
+    valid_cosb_outer[fdep_fnum_outer != 0] = 1.0 / np.sqrt(
+        1.0 + 1.0 / (4.0 * fdep_fnum_outer[fdep_fnum_outer != 0] ** 2)
     )
+
+    cosbmin = np.where(fdep_fnum_inner > 2000.0, 1.0, valid_cosb_inner)
+    cosbmax = np.where(fdep_fnum_outer < 1e-4, 0.0, valid_cosb_outer)
     cosbarc = 2.0 * np.pi * (cosbmin - cosbmax)
 
     ##############################
     # Fnum Dependent Solid Angle #
     ##############################
-    fdep_solid_angle = np.array((nf, len(opt_elem)))
-    fdep_solid_angle[:, idx_z1] = cosbarc[:, idx_z1] * (1.0 - mask_leg_azim_frac)
-    fdep_solid_angle[:, idx_z2] = cosbarc[:, idx_z2] * (1.0 - mask_leg_azim_frac)
+    fdep_solid_angle = np.empty((nf, len(opt_elem)))
+    fdep_solid_angle[:, idx_z1] = cosbarc[:, idx_z1] * (
+        1.0 - mask_leg_azim_frac
+    ).reshape(-1, 1)
+    fdep_solid_angle[:, idx_z2] = cosbarc[:, idx_z2] * (
+        1.0 - mask_leg_azim_frac
+    ).reshape(-1, 1)
     fdep_solid_angle[:, idx_z3] = cosbarc[:, idx_z3]
 
-    # Calculate the conditions once
+    ##############################
+    # Solid angle scaling dependent upon Pupil Obscuration, filter, optical segment
+    ##############################
+    # No SMST leg Obscuration
     legless = mask_leg_width <= 0
-    big_leg = mask_leg_width > params.smst_width
-    normal_leg = ~legless & ~big_leg
+    if np.any(legless):
+        idx = np.where(np.outer(legless, idx_smst))
+        fdep_solid_angle[idx] = (
+            cosbarc[:, idx_smst] * opt_elem['Obscuration Azim Frac'][idx_smst]
+        ).flatten()
 
-    fdep_solid_angle[:, idx_smst] = np.select(
-        [legless, big_leg, normal_leg],
-        [
-            cosbarc * opt_elem['Obscuration Azim Frac'][idx_smst],
-            0.0,
-            (
-                (1.0 - mask_leg_width / params.smst_width)
-                * cosbarc
-                * opt_elem['Obscuration Azim Frac'][idx_smst]
-            ),
-        ],
-    )
+    # Big SMST leg Obscuration
+    big_leg = mask_leg_width > params.smst_width
+    if np.any(big_leg):
+        idx = np.where(np.outer(legless, idx_smst))
+        fdep_solid_angle[idx] = 0.0
+
+    # Normal SMST leg Obscuration
+    normal_leg = ~legless & ~big_leg
+    if np.any(normal_leg):
+        idx = np.where(np.outer(normal_leg, idx_smst))
+        fdep_solid_angle[idx] = (
+            (1.0 - mask_leg_width[normal_leg, None] / params.smst_width)
+            * cosbarc[normal_leg][:, idx_smst]
+            * opt_elem['Obscuration Azim Frac'][idx_smst]
+        ).flatten()
+
+    # Final Scalings
     area_rim = 0.25 * np.pi * (expup_rim_od**2 - expup_rim_id**2)
     area_center = 0.25 * np.pi * (expup_center_od**2)
     area_legs = 0.5 * params.n_legs * expup_leg_width * (expup_rim_id - expup_center_od)
     total_area = area_rim + area_center + area_legs
-    fdep_solid_angle[:, idx_pupil] = total_area / params.pupil_distance**2
+    fdep_solid_angle[:, idx_pupil] = (total_area / params.pupil_distance**2)[:, None]
 
     return fdep_solid_angle
 
@@ -248,11 +275,11 @@ def fdep_trio(
 
     # Store as Astropy Tables.
     fdep_fnum_outer_tab = Table(fdep_fnum_outer, names=opt_elem['Name'])
-    fdep_fnum_outer_tab['Filter'] = filter_names
+    fdep_fnum_outer_tab.add_column(filter_names, name='Filter Name', index=0)
     fdep_fnum_inner_tab = Table(fdep_fnum_inner, names=opt_elem['Name'])
-    fdep_fnum_inner_tab['Filter'] = filter_names
+    fdep_fnum_inner_tab.add_column(filter_names, name='Filter Name', index=0)
     fdep_solid_angle_tab = Table(fdep_solid_angle, names=opt_elem['Name'])
-    fdep_solid_angle_tab['Filter'] = filter_names
+    fdep_solid_angle_tab.add_column(filter_names, name='Filter Name', index=0)
 
     return (
         fdep_fnum_outer_tab,

@@ -4,18 +4,15 @@ import numpy as np
 from astropy.io.ascii import read
 from astropy.table import vstack
 
-from ..instrument import (
-    GrismInstrument,
+from . import RomanInputParams
+from .instrument import (
     InstrumentMode,
+    PrismInstrument,
     downstream_elements,
     upstream_elements,
 )
-from ..instrument.filter import grism_filter_params
-from ..instrument.filter.filter_dep import fdep_trio
-from ..psf import r_other
-from ..tel_elem_table import elements_table
-from ..telescope import Table, Telescope
-from . import RomanInputParams
+from .instrument.filter import fdep_trio, prism_filter_params
+from .psf import r_other
 from .pupil_obscuration_geometry import pupil_obscuration_geom
 from .roman_optics import roman_optics
 from .sca_dependent_data import (
@@ -23,14 +20,16 @@ from .sca_dependent_data import (
     sca_dep_xavg_pixel_scale,
     sca_dep_yavg_pixel_scale,
 )
+from .tel_elem_table import elements_table
+from .telescope import Table, Telescope
 
 
-def roman_grism_telescope(
+def roman_prism_telescope(
     sca: int,
     params: RomanInputParams,
 ) -> Telescope:
     """
-    Configures the Roman Wide-Field Instrument for grism mode, including the setup of
+    Configures the Roman Wide-Field Instrument for prism mode, including the setup of
     telescope optical elements based on the specific SCA index.
 
     Args:
@@ -38,36 +37,32 @@ def roman_grism_telescope(
     - params (RomanInputParams): Configuration parameters for the instrument.
 
     Returns:
-    - Telescope: A configured Telescope object for grism mode with detailed setup
+    - Telescope: A configured Telescope object for prism mode with detailed setup
                  of filters, pupil geometry, and focal properties.
 
     Raises:
     - KeyError: If the SCA index is out of the accepted range [0,17].
 
     This function integrates multiple components such as optical elements, filters,
-    and computational geometry for effective telescope simulation in grism mode.
+    and computational geometry for effective telescope simulation in prism mode.
     """
     if sca < 0 or sca >= 18:
         raise KeyError(f'sca index outside range [0,17]: {sca}')
 
     optics = roman_optics(sca, params)
-    elems_us = upstream_elements(params, optics['tel_elems']['Obscuration_azim_frac'])
+    elems_us = upstream_elements(params, optics['tel_elems']['Obscuration Azim Frac'])
     elems_ss = elements_table(
-        names=['Filter', 'P1', 'P2'],
-        types=['filter', 'grism', 'grism'],
-        materials=['CaF2', 'CaF2', 'CaF2'],
-        emissivities=np.array([params.em_glass, params.em_glass, params.em_glass]),
-        temperatures=np.array(
-            [params.filter_temp, params.filter_temp, params.filter_temp]
-        ),
-        fnum_outer=np.array(
-            [params.aperture_fni, params.aperture_fni, params.aperture_fni]
-        ),
-        fnum_inner=np.array([params.sfnid, params.sfnid, params.sfnid]),
-        tput_factor=np.ones(3),
-        obsc_azimfrac=np.ones(3),
-        th_emis_tput=np.ones(3),
-        fdep=np.full(3, False, dtype=bool),
+        names=['Filter', 'P1'],
+        types=['filter', 'prism'],
+        materials=['CaF2', 'CaF2'],
+        emissivities=np.full(2, params.em_glass),
+        temperatures=np.full(2, params.filter_temp),
+        fnum_outer=np.full(2, params.aperture_fni),
+        fnum_inner=np.full(2, params.sfnid),
+        tput_factor=np.ones(2),
+        obsc_azimfrac=np.ones(2),
+        th_emis_tput=np.ones(2),
+        fdep=np.full(2, False, dtype=bool),
         zone=3,
     )
     elems_ds = downstream_elements(params)
@@ -75,25 +70,32 @@ def roman_grism_telescope(
     opt_elem = vstack([optics['tel_elems'], elems_us, elems_ss, elems_ds])
     sys_focal_length = optics['sys_focal_length']
 
-    filter_pars = grism_filter_params(sca)
+    filter_pars = prism_filter_params(sca, optics['pixel_scale'])
+
+    w_spect = filter_pars['w_spect']
+    r_theta = filter_pars['r_theta']
+    d_lambda = filter_pars['d_lambda']
+
+    # present nominal prism mode WFE budget is 146nm.
+    wfe_wref = 1000 * w_spect
+    wfe_nm = np.full_like(wfe_wref, 100.0)
+    rother = r_other(wfe_wref, wfe_nm, params.pm_d)
 
     # get pupil obstruction corresponding to sca = sca_index
     with as_file(
-        files('RomanTools.data.throughput') / 'Grism_mask_throughput.txt'
+        files('RomanTools.data.throughput') / 'Prism_mask_throughput.txt'
     ) as f:
-        data = read(f, format='no_header', data_start=0)
-        obsc_filt_pupil = np.array([data[sca][1]])
+        data = read(f).columns[1].data
+        obsc_filt_pupil = 1.0 - 1e-2 * np.array([data[sca]])
 
     ############
     # Project mask dimensions back to entrance pupil, convert to meters
-    # Only one filter in grism mode  - has full mask
+    # Only one filter in prism mode  - has full mask
     #                        GRS
     expupil_rim_od = params.aperture_id
-    #
-    # baseline as of 2020 04 22 & OMD Rev E.
-    expupil_rim_id = 2e-3 * np.array([44.5])
-    expupil_center_od = 2e-3 * np.array([13.8])
-    expupil_leg_width = 1e-3 * np.array([2.4])
+    expupil_rim_id = 2e-3 * np.array([47.5])
+    expupil_center_od = 2e-3 * np.array([0.0])
+    expupil_leg_width = 1e-3 * np.array([0.0])
 
     pog = pupil_obscuration_geom(
         params,
@@ -109,7 +111,9 @@ def roman_grism_telescope(
             filter_pars['wlow'],
             filter_pars['high'],
             filter_pars['whigh'],
-            filter_pars['transmission'],
+            [
+                params.filt_tmax * 0.99,
+            ],
             np.full(filter_pars['nf'], expupil_rim_od),
             expupil_rim_id,
             expupil_center_od,
@@ -118,7 +122,7 @@ def roman_grism_telescope(
             pog['obsc_filt_pupil_geom'],
         ],
         names=(
-            'Filter',
+            'Filter Name',
             'Low',
             'Low_width',
             'High',
@@ -147,25 +151,16 @@ def roman_grism_telescope(
         pog['mask_leg_width'],
     )
 
-    w_spect = filter_pars['wlow']
-    r_theta = filter_pars['wlow'] * optics['pixel_scale'] / filter_pars['grs_disp']
-    d_lambda = filter_pars['grs_disp']
-
-    # present nominal grism mode WFE budget is 146nm.
-    wfe_wref = 1000 * w_spect
-    wfe_nm = 146.0
-    rother = r_other(wfe_wref, wfe_nm, params.pm_d)
-
     return Telescope(
         telescope='Roman OTA',
-        instrument_name='Wide-Field Instrument',
-        mode='GRS grism',
+        instrument_name='2 element slitless prism',
+        mode='R=85 prism',
         sca=sca,
         opt_elem=opt_elem,
         pm_diam=params.pm_d,
         sm_diam=params.sm_d,
         n_refl=params.n_refl,
-        n_refr=4,  # filter is on one surface of grism
+        n_refr=2,
         sys_flen=sys_focal_length,
         sys_fratio=sys_focal_length / params.pm_d,
         cos_sca_tilt=optics['cos_sca_tilt'],
@@ -178,9 +173,9 @@ def roman_grism_telescope(
         # guiding off images of stars through broad-band filters
         # changed 2022 06 03 - actual spec is 0.008; 0.012 allows for roll contribution also
         # meaningless if PSF computed by WebbPSF
-        r_jitter=0.014,
-        x_jitter=0.012,
-        y_jitter=0.012,
+        r_jitter=0.043,
+        x_jitter=0.04,  # intermediate case found by Gary Welter
+        y_jitter=0.014,  # includes high-frequency component, not just LOS drift
         r_other=rother,
         pix_size=params.pixel_dimension,
         pix_sc=optics['pixel_scale'],
@@ -190,5 +185,5 @@ def roman_grism_telescope(
         mode_type=InstrumentMode.PrismSpec,
         dark_cur=params.dark_current,
         frame_time=4.42,
-        instrument=GrismInstrument(w_spect=w_spect, r_theta=r_theta, d_lambda=d_lambda),
+        instrument=PrismInstrument(w_spect=w_spect, r_theta=r_theta, d_lambda=d_lambda),
     )

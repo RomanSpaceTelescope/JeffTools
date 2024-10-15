@@ -31,7 +31,7 @@ def image_filter_params(
     with as_file(files('RomanTools.data') / 'F184_us220240305_bandpasses.txt') as f:
         bptable = vstack([bptable, read(f, header_start=1, data_start=2)])
 
-    bptable = bptable[bptable['SCA'] == idx]
+    bptable = bptable[bptable['SCA'] == idx + 1]
 
     filt_name = bptable['Filt'].data
     nf = len(bptable)
